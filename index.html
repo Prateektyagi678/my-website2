@@ -20,29 +20,37 @@
 <body>
   <h2>OpenFrame Test Adapter (No Cisco)</h2>
   <div class="hint">
-    Uses <code>openFrameAPI.init()</code> (first OpenFrame API call) [2](https://developer.cisco.com/docs/finesse/getting-started/) and creates an Incident using the Table API default endpoint
-    <code>/api/now/table/incident</code> (ServiceNow supports default URL <code>/api/now/table/{tableName}</code>). [1](https://www.servicenow.com/docs/r/api-reference/rest-apis/c_TableAPI.html)
+    This page is designed to run inside ServiceNow OpenFrame. It calls <code>openFrameAPI.init()</code> (first OpenFrame API call) [1](https://developer.cisco.com/docs/finesse/getting-started/)
+    and can create an Incident using Table API v1 POST [2](https://www.servicenow.com/docs/r/customer-service-management/t_CreateAnOpenFrameConfiguration.html?contentId=H3mcEQnL9UwoKyCTFamIFQ) then screen-pop it using <code>openServiceNowForm</code>. [1](https://developer.cisco.com/docs/finesse/getting-started/)[3](https://community.cisco.com/t5/contact-center/workflow-for-uccx-finesse-api/td-p/4540835)
   </div>
+
+  <label>ServiceNow Base URL</label>
+  <input id="snBase" value="https://dev393388.service-now.com" />
 
   <div class="row">
-    <button id="btnInit">1) Init OpenFrame</button>
-    <button id="btnResize">2) Resize OpenFrame (420x720)</button>
+    <div>
+      <label>Integration Username (Basic Auth test)</label>
+      <input id="snUser" placeholder="e.g., test.integration" autocomplete="username" />
+    </div>
+    <div>
+      <label>Integration Password</label>
+      <input id="snPass" type="password" placeholder="password" autocomplete="current-password" />
+    </div>
   </div>
-
-  <label>Integration Username (Basic Auth test)</label>
-  <input id="snUser" placeholder="e.g., test.integration" autocomplete="username" />
-
-  <label>Integration Password</label>
-  <input id="snPass" type="password" placeholder="password" autocomplete="current-password" />
 
   <label>Incident Payload (JSON)</label>
   <textarea id="payload">
 {
   "short_description": "OpenFrame GitHub adapter test",
-  "description": "Incident created from GitHub Pages adapter via Table API (/api/now/table/incident).",
+  "description": "Incident created from GitHub Pages adapter via Table API.",
   "contact_type": "phone"
 }
   </textarea>
+
+  <div class="row">
+    <button id="btnInit">1) Init OpenFrame</button>
+    <button id="btnResize">2) Resize OpenFrame (420x720)</button>
+  </div>
 
   <div class="row">
     <button id="btnCreateIncident">3) Create Incident + Screen Pop</button>
@@ -52,10 +60,10 @@
   <label>Log</label>
   <textarea id="log" readonly></textarea>
 
-  <!-- Load OpenFrame API from your ServiceNow instance using documented "latest" path. [2](https://developer.cisco.com/docs/finesse/getting-started/)[3](https://community.cisco.com/t5/contact-center/workflow-for-uccx-finesse-api/td-p/4540835) -->
-  <script src="https://dev393388.service-now.com/scripts/openframe/latest/openFrameAPI.min.js"></script>
+  <!-- Load OpenFrame API from your ServiceNow instance using the documented "latest" path. [1](https://developer.cisco.com/docs/finesse/getting-started/)[3](https://community.cisco.com/t5/contact-center/workflow-for-uccx-finesse-api/td-p/4540835) -->
+  https://dev393388.service-now.com/scripts/openframe/latest/openFrameAPI.min.jsscript>
 
   <!-- Adapter logic -->
-  <script src="./adapter.js"></script>
+  ./adapter.jsscript>
 </body>
 </html>
