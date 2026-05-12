@@ -58,7 +58,7 @@
 
     // Table API default URL format: /api/now/table/{tableName}. [6](https://www.cisco.com/c/en/us/support/docs/contact-center/finesse/221598-understand-uccx-finesse-architecture-dee.html)
     // POST inserts one record. [6](https://www.cisco.com/c/en/us/support/docs/contact-center/finesse/221598-understand-uccx-finesse-architecture-dee.html)
-    var url = base + "/api/now/table/incident";
+    var url = var url = base + "/api/openframe_github_test/incident";";
     log("POST " + url);
 
     fetch(url, {
