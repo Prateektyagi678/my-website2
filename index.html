@@ -3,67 +3,53 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ServiceNow OpenFrame Test Adapter (No Cisco)</title>
+  <title>OpenFrame GitHub Adapter Test</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 12px; }
-    h2 { margin: 0 0 8px; }
-    .hint { font-size: 12px; color: #555; margin: 6px 0 12px; }
+    .hint { font-size: 12px; color: #555; margin: 6px 0 10px; }
     label { display:block; margin-top: 10px; font-weight: 600; }
     input, textarea, button { width: 100%; padding: 10px; margin-top: 6px; box-sizing: border-box; }
-    textarea { height: 140px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    textarea { height: 120px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     button { cursor: pointer; }
-    button:disabled { cursor: not-allowed; opacity: .6; }
   </style>
 </head>
-
 <body>
-  <h2>OpenFrame Test Adapter (No Cisco)</h2>
+  <h2>OpenFrame GitHub Adapter (Different Origin Test)</h2>
   <div class="hint">
-    This page is designed to run inside ServiceNow OpenFrame. It calls <code>openFrameAPI.init()</code> (first OpenFrame API call) [1](https://developer.cisco.com/docs/finesse/getting-started/)
-    and can create an Incident using Table API v1 POST [2](https://www.servicenow.com/docs/r/customer-service-management/t_CreateAnOpenFrameConfiguration.html?contentId=H3mcEQnL9UwoKyCTFamIFQ) then screen-pop it using <code>openServiceNowForm</code>. [1](https://developer.cisco.com/docs/finesse/getting-started/)[3](https://community.cisco.com/t5/contact-center/workflow-for-uccx-finesse-api/td-p/4540835)
+    This page is hosted on GitHub Pages (different origin) and loaded inside ServiceNow OpenFrame.
   </div>
-
-  <label>ServiceNow Base URL</label>
-  <input id="snBase" value="https://dev393388.service-now.com" />
 
   <div class="row">
-    <div>
-      <label>Integration Username (Basic Auth test)</label>
-      <input id="snUser" placeholder="e.g., test.integration" autocomplete="username" />
-    </div>
-    <div>
-      <label>Integration Password</label>
-      <input id="snPass" type="password" placeholder="password" autocomplete="current-password" />
-    </div>
+    <button id="btnInit">1) Init OpenFrame</button>
+    <button id="btnCreate">2) Create Incident + Screen Pop</button>
   </div>
+
+  <label>ServiceNow Instance Base URL</label>
+  <input id="snBase" value="https://dev393388.service-now.com" />
+
+  <label>Integration Username (Basic Auth test)</label>
+  <input id="snUser" placeholder="integration user" />
+
+  <label>Integration Password</label>
+  <input id="snPass" type="password" placeholder="password" />
 
   <label>Incident Payload (JSON)</label>
   <textarea id="payload">
 {
-  "short_description": "OpenFrame GitHub adapter test",
-  "description": "Incident created from GitHub Pages adapter via Table API.",
+  "short_description": "OpenFrame GitHub origin test",
+  "description": "Created from GitHub Pages adapter via Table API.",
   "contact_type": "phone"
 }
   </textarea>
 
-  <div class="row">
-    <button id="btnInit">1) Init OpenFrame</button>
-    <button id="btnResize">2) Resize OpenFrame (420x720)</button>
-  </div>
-
-  <div class="row">
-    <button id="btnCreateIncident">3) Create Incident + Screen Pop</button>
-    <button id="btnPopLast">4) Screen Pop Last Incident</button>
-  </div>
-
   <label>Log</label>
   <textarea id="log" readonly></textarea>
 
-  <!-- Load OpenFrame API from your ServiceNow instance using the documented "latest" path. [1](https://developer.cisco.com/docs/finesse/getting-started/)[3](https://community.cisco.com/t5/contact-center/workflow-for-uccx-finesse-api/td-p/4540835) -->
-  https://dev393388.service-now.com/scripts/openframe/latest/openFrameAPI.min.jsscript>
+  <!-- Load OpenFrame API from the ServiceNow instance (latest minified path). [10](https://www.servicenow.com/docs/r/api-reference/api-reference.html)[11](https://bing.com/search?q=ServiceNow+documentation+CORS+Rules+create+CORS+rule+System+Web+Services+REST+CORS+Rules+domain+methods+headers+allow+credentials) -->
+  <script src="https://dev393388.service-now.com/scripts/openframe/latest/openFrameAPI.min.js"></script>
 
-  <!-- Adapter logic -->
-  ./adapter.jsscript>
+  <script src="./adapter.js"></script>
 </body>
 </html>
+``
