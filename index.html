@@ -3,25 +3,24 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ServiceNow OpenFrame GitHub Adapter</title>
+  <title>ServiceNow OpenFrame GitHub Adapter (Basic Auth Only)</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 12px; }
     h2 { margin: 0 0 8px; }
     .hint { font-size: 12px; color: #555; margin: 6px 0 10px; }
     label { display:block; margin-top: 10px; font-weight: 600; }
-    input, textarea, button, select { width: 100%; padding: 10px; margin-top: 6px; box-sizing: border-box; }
+    input, textarea, button { width: 100%; padding: 10px; margin-top: 6px; box-sizing: border-box; }
     textarea { height: 160px; font-family: ui-monospace, Menlo, Consolas, monospace; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     button { cursor: pointer; }
   </style>
 </head>
 <body>
-  <h2>OpenFrame GitHub Adapter (Different Origin)</h2>
+  <h2>OpenFrame GitHub Adapter (Basic Auth Only)</h2>
 
   <div class="hint">
-    - Loads inside ServiceNow OpenFrame.<br/>
-    - Init uses <code>openFrameAPI.init()</code> (must be first OpenFrame call). [1](https://help.genesys.cloud/articles/create-an-openframe-configuration-in-servicenow/)<br/>
-    - Creates incident via Scripted REST API, then screen pops using <code>openFrameAPI.openServiceNowForm()</code>. [1](https://help.genesys.cloud/articles/create-an-openframe-configuration-in-servicenow/)
+    - Init uses <code>openFrameAPI.init()</code> (must be first OpenFrame call).<br/>
+    - Creates incident via Scripted REST API, then screen pops using <code>openFrameAPI.openServiceNowForm()</code>.
   </div>
 
   <div class="row">
@@ -35,26 +34,11 @@
   <label>Scripted REST API Endpoint (absolute URL)</label>
   <input id="apiUrl" value="https://dev393388.service-now.com/api/openframe_github_test/incident" />
 
-  <label>Auth Type</label>
-  <select id="authType">
-    <option value="basic" selected>Basic Auth</option>
-    <option value="bearer">OAuth Bearer Token</option>
-    <option value="none">None (only if your API is public – NOT recommended)</option>
-  </select>
+  <label>Integration Username (Basic Auth)</label>
+  <input id="snUser" placeholder="integration user" autocomplete="username" />
 
-  <div class="row">
-    <div>
-      <label>Username (Basic)</label>
-      <input id="snUser" placeholder="integration user" autocomplete="username" />
-    </div>
-    <div>
-      <label>Password (Basic)</label>
-      <input id="snPass" type="password" placeholder="password" autocomplete="current-password" />
-    </div>
-  </div>
-
-  <label>Bearer Token (OAuth)</label>
-  <input id="bearer" placeholder="paste access token if using OAuth" />
+  <label>Integration Password (Basic Auth)</label>
+  <input id="snPass" type="password" placeholder="password" autocomplete="current-password" />
 
   <label>Incident Payload (JSON)</label>
   <textarea id="payload">
@@ -68,10 +52,11 @@
   <label>Log</label>
   <textarea id="log" readonly></textarea>
 
-  <!-- Load OpenFrame library from ServiceNow instance using recommended "latest" path. [1](https://help.genesys.cloud/articles/create-an-openframe-configuration-in-servicenow/) -->
-  <script src="https://dev393388.service-now.com/scripts/openframe/latest/openFrameAPI.min.js"></script>
+  <!-- Load OpenFrame library from ServiceNow instance using recommended "latest" path. [3](https://help.genesys.cloud/articles/create-an-openframe-configuration-in-servicenow/) -->
+  https://dev393388.service-now.com/scripts/openframe/latest/openFrameAPI.min.jsscript>
 
-  <!-- Your adapter logic -->
-  <script src="./adapter.js"></script>
+  <!-- Adapter logic -->
+  ./adapter.jsscript>
 </body>
 </html>
+``
