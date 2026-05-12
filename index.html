@@ -3,21 +3,25 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>OpenFrame GitHub Adapter Test</title>
+  <title>ServiceNow OpenFrame GitHub Adapter</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 12px; }
+    h2 { margin: 0 0 8px; }
     .hint { font-size: 12px; color: #555; margin: 6px 0 10px; }
     label { display:block; margin-top: 10px; font-weight: 600; }
-    input, textarea, button { width: 100%; padding: 10px; margin-top: 6px; box-sizing: border-box; }
-    textarea { height: 120px; font-family: ui-monospace, Menlo, Consolas, monospace; }
-    .row { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    input, textarea, button, select { width: 100%; padding: 10px; margin-top: 6px; box-sizing: border-box; }
+    textarea { height: 160px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     button { cursor: pointer; }
   </style>
 </head>
 <body>
-  <h2>OpenFrame GitHub Adapter (Different Origin Test)</h2>
+  <h2>OpenFrame GitHub Adapter (Different Origin)</h2>
+
   <div class="hint">
-    This page is hosted on GitHub Pages (different origin) and loaded inside ServiceNow OpenFrame.
+    - Loads inside ServiceNow OpenFrame.<br/>
+    - Init uses <code>openFrameAPI.init()</code> (must be first OpenFrame call). [1](https://help.genesys.cloud/articles/create-an-openframe-configuration-in-servicenow/)<br/>
+    - Creates incident via Scripted REST API, then screen pops using <code>openFrameAPI.openServiceNowForm()</code>. [1](https://help.genesys.cloud/articles/create-an-openframe-configuration-in-servicenow/)
   </div>
 
   <div class="row">
@@ -28,17 +32,35 @@
   <label>ServiceNow Instance Base URL</label>
   <input id="snBase" value="https://dev393388.service-now.com" />
 
-  <label>Integration Username (Basic Auth test)</label>
-  <input id="snUser" placeholder="integration user" />
+  <label>Scripted REST API Endpoint (absolute URL)</label>
+  <input id="apiUrl" value="https://dev393388.service-now.com/api/openframe_github_test/incident" />
 
-  <label>Integration Password</label>
-  <input id="snPass" type="password" placeholder="password" />
+  <label>Auth Type</label>
+  <select id="authType">
+    <option value="basic" selected>Basic Auth</option>
+    <option value="bearer">OAuth Bearer Token</option>
+    <option value="none">None (only if your API is public – NOT recommended)</option>
+  </select>
+
+  <div class="row">
+    <div>
+      <label>Username (Basic)</label>
+      <input id="snUser" placeholder="integration user" autocomplete="username" />
+    </div>
+    <div>
+      <label>Password (Basic)</label>
+      <input id="snPass" type="password" placeholder="password" autocomplete="current-password" />
+    </div>
+  </div>
+
+  <label>Bearer Token (OAuth)</label>
+  <input id="bearer" placeholder="paste access token if using OAuth" />
 
   <label>Incident Payload (JSON)</label>
   <textarea id="payload">
 {
-  "short_description": "OpenFrame GitHub origin test",
-  "description": "Created from GitHub Pages adapter via Table API.",
+  "short_description": "OpenFrame GitHub adapter test",
+  "description": "Created from GitHub Pages adapter via Scripted REST API.",
   "contact_type": "phone"
 }
   </textarea>
@@ -46,10 +68,10 @@
   <label>Log</label>
   <textarea id="log" readonly></textarea>
 
-  <!-- Load OpenFrame API from the ServiceNow instance (latest minified path). [10](https://www.servicenow.com/docs/r/api-reference/api-reference.html)[11](https://bing.com/search?q=ServiceNow+documentation+CORS+Rules+create+CORS+rule+System+Web+Services+REST+CORS+Rules+domain+methods+headers+allow+credentials) -->
+  <!-- Load OpenFrame library from ServiceNow instance using recommended "latest" path. [1](https://help.genesys.cloud/articles/create-an-openframe-configuration-in-servicenow/) -->
   <script src="https://dev393388.service-now.com/scripts/openframe/latest/openFrameAPI.min.js"></script>
 
+  <!-- Your adapter logic -->
   <script src="./adapter.js"></script>
 </body>
 </html>
-``
