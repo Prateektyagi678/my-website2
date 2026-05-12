@@ -2,14 +2,19 @@
   let initialized = false;
   let lastIncidentSysId = null;
 
-  // Use the endpoint you requested:
-  // ServiceNow Table API supports default URL: /api/now/table/{tableName} [1](https://www.servicenow.com/docs/r/api-reference/rest-apis/c_TableAPI.html)
-  const INCIDENT_POST_URL = "https://dev393388.service-now.com/api/now/table/incident";
-
   function log(msg) {
     const box = document.getElementById("log");
     box.value += `[${new Date().toISOString()}] ${msg}\n`;
     box.scrollTop = box.scrollHeight;
+  }
+
+  function getEl(id) {
+    return document.getElementById(id);
+  }
+
+  function getValue(id) {
+    const el = getEl(id);
+    return el ? el.value : null;
   }
 
   function getApi() {
@@ -20,11 +25,11 @@
   function initOpenFrame() {
     const api = getApi();
     if (!api) {
-      log("ERROR: openFrameAPI not loaded. Check script tag in index.html.");
+      log("ERROR: openFrameAPI is not loaded. Check script src in index.html.");
       return;
     }
 
-    // init() must be the first OpenFrame API method called. [2](https://developer.cisco.com/docs/finesse/getting-started/)
+    // init() must be the first OpenFrame API method called. [1](https://developer.cisco.com/docs/finesse/getting-started/)
     const config = { width: 420, height: 720, title: "OF Test", subTitle: "GitHub Adapter" };
 
     api.init(
@@ -40,12 +45,12 @@
     );
   }
 
-  // 2) Resize OpenFrame (optional)
+  // 2) Resize OpenFrame
   function resizeOpenFrame() {
     const api = getApi();
     if (!api) return log("ERROR: openFrameAPI not available.");
 
-    // setSize is documented in OpenFrame client API. [2](https://developer.cisco.com/docs/finesse/getting-started/)
+    // setSize is documented. [1](https://developer.cisco.com/docs/finesse/getting-started/)
     api.setSize(420, 720);
     log("Requested OpenFrame resize to 420x720.");
   }
@@ -56,7 +61,7 @@
     if (!api) return log("ERROR: openFrameAPI not available.");
     if (!sysId) return log("ERROR: No sys_id to screen pop.");
 
-    // openServiceNowForm is documented to open a record form. [2](https://developer.cisco.com/docs/finesse/getting-started/)[3](https://community.cisco.com/t5/contact-center/workflow-for-uccx-finesse-api/td-p/4540835)
+    // openServiceNowForm is documented for opening a record. [1](https://developer.cisco.com/docs/finesse/getting-started/)[3](https://community.cisco.com/t5/contact-center/workflow-for-uccx-finesse-api/td-p/4540835)
     api.openServiceNowForm({
       entity: "incident",
       query: "sys_id=" + sysId
@@ -65,16 +70,18 @@
     log("Screen pop requested for incident sys_id=" + sysId);
   }
 
-  // 3) Create Incident + Screen Pop (Table API default endpoint)
+  // 3) Create Incident + Screen Pop
   async function createIncidentAndPop() {
     const api = getApi();
     if (!api) return log("ERROR: openFrameAPI not available.");
     if (!initialized) log("WARNING: OpenFrame not initialized yet. Click 'Init OpenFrame' first.");
 
-    const user = (document.getElementById("snUser")?.value || "").trim();
-    const pass = (document.getElementById("snPass")?.value || "");
-    const payloadText = (document.getElementById("payload")?.value || "");
+    const base = (getValue("snBase") || "").trim().replace(/\/$/, "");
+    const user = (getValue("snUser") || "").trim();
+    const pass = getValue("snPass") || "";
+    const payloadText = getValue("payload") || "";
 
+    if (!base) return log("ERROR: ServiceNow Base URL is empty.");
     if (!user || !pass) return log("ERROR: Provide username and password.");
     if (!payloadText) return log("ERROR: Incident payload is empty.");
 
@@ -85,16 +92,18 @@
       return log("ERROR: Payload is not valid JSON: " + e.message);
     }
 
-    // ServiceNow Table API: POST /api/now/table/{tableName} inserts one record. [1](https://www.servicenow.com/docs/r/api-reference/rest-apis/c_TableAPI.html)
-    log("POST " + INCIDENT_POST_URL);
+    // Table API incident create endpoint is documented in ServiceNow REST API Explorer tutorial. [2](https://www.servicenow.com/docs/r/customer-service-management/t_CreateAnOpenFrameConfiguration.html?contentId=H3mcEQnL9UwoKyCTFamIFQ)
+    const url = `${base}/api/now/v1/table/incident`;
+
+    log("POST " + url);
 
     try {
-      const res = await fetch(INCIDENT_POST_URL, {
+      const res = await fetch(url, {
         method: "POST",
         headers: {
           "Accept": "application/json",
           "Content-Type": "application/json",
-          // If you use Authorization header in browser, ensure your CORS rule allows it. [4](https://www.flamingo.run/openframe)
+          // If you use Authorization header, ensure your CORS rule allows it. [4](https://www.flamingo.run/openframe)
           "Authorization": "Basic " + btoa(`${user}:${pass}`)
         },
         body: JSON.stringify(payload)
@@ -105,7 +114,7 @@
 
       if (!res.ok) {
         log("ERROR: POST failed. Body: " + text);
-        log("TIP: Verify your CORS rule for Table API allows your GitHub origin and required headers/methods. [4](https://www.flamingo.run/openframe)");
+        log("TIP: If this is a CORS error, verify a CORS rule exists for Table API and your GitHub origin. [4](https://www.flamingo.run/openframe)");
         return;
       }
 
@@ -119,3 +128,30 @@
       }
 
       lastIncidentSysId = sysId;
+      log("SUCCESS: Incident created sys_id=" + sysId);
+
+      screenPopIncident(sysId);
+
+    } catch (e) {
+      log("ERROR: Exception during fetch: " + e.message);
+    }
+  }
+
+  // 4) Pop last incident
+  function popLastIncident() {
+    if (!lastIncidentSysId) return log("ERROR: No incident has been created yet.");
+    screenPopIncident(lastIncidentSysId);
+  }
+
+  // Bind UI after DOM is ready
+  document.addEventListener("DOMContentLoaded", () => {
+    log("Page loaded. openFrameAPI type: " + typeof window.openFrameAPI);
+
+    getEl("btnInit").addEventListener("click", initOpenFrame);
+    getEl("btnResize").addEventListener("click", resizeOpenFrame);
+    getEl("btnCreateIncident").addEventListener("click", createIncidentAndPop);
+    getEl("btnPopLast").addEventListener("click", popLastIncident);
+
+    log("Handlers attached. Click 'Init OpenFrame'.");
+  });
+})();
