@@ -1,105 +1,160 @@
 (function () {
-  var initialized = false;
+  let initialized = false;
 
+  // --- Logging helpers ---
   function log(msg) {
-    var box = document.getElementById("log");
-    var line = "[" + new Date().toISOString() + "] " + (msg || "") + "\n";
-    box.value = box.value + line;
-    box.scrollTop = box.scrollHeight;
+    const box = document.getElementById("log");
+    const line = "[" + new Date().toISOString() + "] " + (msg || "") + "\n";
+    if (box) {
+      box.value += line;
+      box.scrollTop = box.scrollHeight;
+    }
     try { console.log(msg); } catch (e) {}
   }
 
+  // Log JS errors so “nothing happens” is diagnosable
+  window.addEventListener("error", function (e) {
+    log("JS ERROR: " + (e.message || "unknown") + " @ " + (e.filename || "") + ":" + (e.lineno || ""));
+  });
+
+  window.addEventListener("unhandledrejection", function (e) {
+    log("PROMISE REJECTION: " + (e.reason ? (e.reason.message || e.reason) : "unknown"));
+  });
+
+  function getEl(id) { return document.getElementById(id); }
+
+  function getAuthHeader() {
+    const type = (getEl("authType")?.value || "basic").toLowerCase();
+
+    if (type === "none") return null;
+
+    if (type === "bearer") {
+      const token = (getEl("bearer")?.value || "").trim();
+      if (!token) throw new Error("Bearer token is empty.");
+      return "Bearer " + token;
+    }
+
+    // basic
+    const user = (getEl("snUser")?.value || "").trim();
+    const pass = (getEl("snPass")?.value || "");
+    if (!user || !pass) throw new Error("Basic Auth username/password is empty.");
+    return "Basic " + btoa(user + ":" + pass);
+  }
+
+  function parsePayload() {
+    const raw = getEl("payload")?.value || "";
+    try { return JSON.parse(raw); }
+    catch (e) { throw new Error("Payload JSON invalid: " + e.message); }
+  }
+
+  // --- OpenFrame Init (must be first OpenFrame API call) ---
   function initOpenFrame() {
     if (!window.openFrameAPI) {
-      log("ERROR: openFrameAPI not loaded.");
+      log("ERROR: openFrameAPI is not loaded. Check openFrameAPI.min.js script tag.");
       return;
     }
 
-    // init() must be the first OpenFrame API method called. [10](https://www.servicenow.com/docs/r/api-reference/api-reference.html)
-    var cfg = { width: 420, height: 720, title: "OF Test", subTitle: "GitHub Origin" };
+    // init must be the first method you call. [1](https://help.genesys.cloud/articles/create-an-openframe-configuration-in-servicenow/)
+    const cfg = { width: 420, height: 720, title: "OF Test", subTitle: "GitHub Adapter" };
 
     window.openFrameAPI.init(
       cfg,
-      function success(snConfig) {
+      function (snConfig) {
         initialized = true;
-        log("SUCCESS: init completed. Returned config name=" + (snConfig && snConfig.name ? snConfig.name : "(none)"));
+        log("SUCCESS: init completed. Config name=" + (snConfig && snConfig.name ? snConfig.name : "(none)"));
       },
-      function failure(err) {
+      function (err) {
         log("FAILED: init failed: " + JSON.stringify(err));
       }
     );
   }
 
+  // --- Screen pop helper ---
   function screenPopIncident(sysId) {
-    if (!sysId) return log("ERROR: No sys_id to screen pop.");
+    if (!window.openFrameAPI) return log("ERROR: openFrameAPI not available.");
+    if (!sysId) return log("ERROR: sys_id missing for screen pop.");
 
-    // openServiceNowForm is documented for opening records. [10](https://www.servicenow.com/docs/r/api-reference/api-reference.html)[11](https://bing.com/search?q=ServiceNow+documentation+CORS+Rules+create+CORS+rule+System+Web+Services+REST+CORS+Rules+domain+methods+headers+allow+credentials)
+    // openServiceNowForm is the documented way to open a record from OpenFrame. [1](https://help.genesys.cloud/articles/create-an-openframe-configuration-in-servicenow/)
     window.openFrameAPI.openServiceNowForm({
       entity: "incident",
       query: "sys_id=" + sysId
     });
+
     log("Screen pop requested for sys_id=" + sysId);
   }
 
-  function createIncidentAndPop() {
+  // --- Create incident via Scripted REST API ---
+  async function createIncidentAndPop() {
     if (!initialized) log("NOTE: Init OpenFrame first (recommended).");
 
-    var base = document.getElementById("snBase").value.trim().replace(/\/$/, "");
-    var user = document.getElementById("snUser").value.trim();
-    var pass = document.getElementById("snPass").value;
-    var rawPayload = document.getElementById("payload").value;
+    const apiUrl = (getEl("apiUrl")?.value || "").trim();
+    if (!apiUrl) return log("ERROR: Scripted REST API URL is empty.");
 
-    if (!base) return log("ERROR: ServiceNow base URL is empty.");
-    if (!user || !pass) return log("ERROR: Provide integration username/password (Basic Auth test).");
+    let payload;
+    try { payload = parsePayload(); }
+    catch (e) { return log("ERROR: " + e.message); }
 
-    var payload;
-    try { payload = JSON.parse(rawPayload); }
-    catch (e) { return log("ERROR: Invalid JSON payload: " + e.message); }
+    let auth;
+    try { auth = getAuthHeader(); }
+    catch (e) { return log("ERROR: " + e.message); }
 
-    // Table API default URL format: /api/now/table/{tableName}. [6](https://www.cisco.com/c/en/us/support/docs/contact-center/finesse/221598-understand-uccx-finesse-architecture-dee.html)
-    // POST inserts one record. [6](https://www.cisco.com/c/en/us/support/docs/contact-center/finesse/221598-understand-uccx-finesse-architecture-dee.html)
-    var url = var url = base + "/api/openframe_github_test/incident";";
-    log("POST " + url);
+    log("POST " + apiUrl);
 
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        // Basic Auth is a supported inbound REST authentication method. [5](https://github.com/mayur-hajare/ServiceNow-Documents)
-        "Authorization": "Basic " + btoa(user + ":" + pass)
-      },
-      body: JSON.stringify(payload)
-    })
-    .then(function (res) {
-      return res.text().then(function (txt) {
-        return { ok: res.ok, status: res.status, text: txt };
+    const headers = {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    };
+    if (auth) headers["Authorization"] = auth;
+
+    try {
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload)
       });
-    })
-    .then(function (r) {
-      log("Response HTTP " + r.status);
-      if (!r.ok) {
-        log("ERROR: POST failed. Body: " + r.text);
+
+      const text = await res.text();
+      log("Response HTTP " + res.status);
+
+      if (!res.ok) {
+        log("ERROR: POST failed. Body: " + text);
         return;
       }
 
-      var data = {};
-      try { data = JSON.parse(r.text); } catch (e) {}
+      let data = {};
+      try { data = JSON.parse(text); } catch (e) {}
 
-      var sysId = (data && data.result && data.result.sys_id) ? data.result.sys_id : null;
-      if (!sysId) return log("ERROR: sys_id not found in response.");
+      // Expected response shape: { result: { sys_id: "..." } }
+      const sysId = data && data.result && data.result.sys_id ? data.result.sys_id : null;
+      if (!sysId) {
+        log("ERROR: sys_id not found in response: " + text);
+        return;
+      }
 
       log("SUCCESS: Incident created sys_id=" + sysId);
       screenPopIncident(sysId);
-    })
-    .catch(function (e) {
-      log("ERROR: fetch exception: " + e.message);
-    });
+
+    } catch (e) {
+      log("ERROR: fetch exception: " + (e.message || e));
+    }
   }
 
+  // --- Bind handlers ---
   document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("btnInit").addEventListener("click", initOpenFrame);
-    document.getElementById("btnCreate").addEventListener("click", createIncidentAndPop);
-    log("Ready.");
+    log("Adapter loaded. Page origin=" + location.origin);
+    log("openFrameAPI type=" + typeof window.openFrameAPI);
+
+    const btnInit = getEl("btnInit");
+    const btnCreate = getEl("btnCreate");
+
+    if (!btnInit || !btnCreate) {
+      log("ERROR: Buttons not found. Check ids btnInit / btnCreate in HTML.");
+      return;
+    }
+
+    btnInit.addEventListener("click", initOpenFrame);
+    btnCreate.addEventListener("click", createIncidentAndPop);
+
+    log("Handlers attached. Click 'Init OpenFrame'.");
   });
 })();
